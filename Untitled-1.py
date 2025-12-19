@@ -29,16 +29,20 @@ while i:
     if solidSnake.x<=mat1 and solidSnake.x>=mat1-10 and solidSnake.y<=mat2 and solidSnake.y>=mat2-10 or solidSnake.x>=mat1 and solidSnake.x<=mat1+10 and solidSnake.y>=mat2 and solidSnake.y<=mat2+10:
         mat=True
     if mat: #kollar om maten är uppäten
-        mat1=random.randint(20,790)
-        mat2=random.randint(20,790)
+        z=True
+        while z:
+            mat1=random.randint(20,790)
+            mat2=random.randint(20,790)
+            if not (mat1>solidSnake.x-10 and mat1<solidSnake.x+20 and mat2>solidSnake.y-10 and mat2<solidSnake.y+20 or screen.get_at((mat1,mat2))==(255,0,0,255) or screen.get_at((mat1+10,mat2))==(255,0,0,255) or screen.get_at((mat1,mat2+10))==(255,0,0,255) or screen.get_at((mat1+10,mat2+10))==(255,0,0,255)):
+                z=False
         snakeLength=snakeLength+1
         z=True
         while z:
             x1=random.randint(20,790)
             y1=random.randint(20,790)
             if not (x1>mat1-10 and x1<mat1+20 and y1>mat2-10 and y1<mat2+20 or x1>solidSnake.x-10 and x1<solidSnake.x+20 and y1>solidSnake.y-10 and y1<solidSnake.y+20):
-                if random.randint(0,100)>75:
-                    f=random.randint(-1,snakeLength)
+                if random.randint(0,100)>75 and snakeLength>3:
+                    f=random.randint(0,snakeLength-2)
                     wallX[f]=x1
                     wallY[f]=y1
                 else:
