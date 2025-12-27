@@ -11,6 +11,7 @@ a=0
 w=0
 s=0
 d=0
+last_dir = None
 
 screen = pygame.display.set_mode((screenWidth,screenHight))
 solidSnake = pygame.Rect((10,10,10,10))
@@ -28,6 +29,11 @@ mat=False
 #}
 clock=pygame.time.Clock()
 
+def check_location(x, y):
+    if 0 <= x < screenWidth and 0 <= y < screenHight:
+        return screen.get_at((x, y))
+    return None
+
 i = True
 while i:
     clock.tick(time) #how fast things move, probably removed or changed for ai training
@@ -39,7 +45,7 @@ while i:
         while z:
             mat1=random.randint(20,790)
             mat2=random.randint(20,790)
-            if not (mat1>solidSnake.x-10 and mat1<solidSnake.x+20 and mat2>solidSnake.y-10 and mat2<solidSnake.y+20 or screen.get_at((mat1,mat2))==(255,0,0,255) or screen.get_at((mat1+10,mat2))==(255,0,0,255) or screen.get_at((mat1,mat2+10))==(255,0,0,255) or screen.get_at((mat1+10,mat2+10))==(255,0,0,255)):
+            if not (mat1>solidSnake.x-10 and mat1<solidSnake.x+20 and mat2>solidSnake.y-10 and mat2<solidSnake.y+20 or check_location(mat1,mat2)==(255,0,0,255) or check_location(mat1+10,mat2)==(255,0,0,255) or check_location(mat1,mat2+10)==(255,0,0,255) or check_location(mat1+10,mat2+10)==(255,0,0,255)):
                 z=False
         snakeLength=snakeLength+1
         z=True
@@ -77,10 +83,10 @@ while i:
         wall=wall+1
         pygame.draw.rect(screen,(255,0,0),pygame.Rect((wallX[wall],wallY[wall],10,10)))
     #collision
-    if solidSnake.x<0 or solidSnake.x>800 or solidSnake.y<0 or solidSnake.y>800:
+    if solidSnake.x < 0 or solidSnake.x + solidSnake.width > screenWidth or solidSnake.y < 0 or solidSnake.y + solidSnake.height > screenHight:
         #ran out of bounds
         reward=-8
-        #under här är variabler att reseta när spelet är över{
+        #under här är variable        the game still crashedr att reseta när spelet är över{
         a=0
         w=0
         s=0
@@ -96,7 +102,7 @@ while i:
         reward=0
         mat=False
         #}
-    elif screen.get_at((solidSnake.x,solidSnake.y))==(255,245,255,255) or screen.get_at((solidSnake.x+10,solidSnake.y))==(255,245,255,255) or screen.get_at((solidSnake.x,solidSnake.y+10))==(255,245,255,255) or screen.get_at((solidSnake.x+10,solidSnake.y+10))==(255,245,255,255):
+    elif check_location(solidSnake.x,solidSnake.y)==(255,245,255,255) or check_location(solidSnake.x+10,solidSnake.y)==(255,245,255,255) or check_location(solidSnake.x,solidSnake.y+10)==(255,245,255,255) or check_location(solidSnake.x+10,solidSnake.y+10)==(255,245,255,255):
         #ran into self
         reward=-10
         #under här är variabler att reseta när spelet är över{
@@ -115,7 +121,7 @@ while i:
         reward=0
         mat=False
         #}
-    elif screen.get_at((solidSnake.x,solidSnake.y))==(255,0,0,255) or screen.get_at((solidSnake.x+10,solidSnake.y))==(255,0,0,255) or screen.get_at((solidSnake.x,solidSnake.y+10))==(255,0,0,255) or screen.get_at((solidSnake.x+10,solidSnake.y+10))==(255,0,0,255):
+    elif check_location(solidSnake.x,solidSnake.y)==(255,0,0,255) or check_location(solidSnake.x+10,solidSnake.y)==(255,0,0,255) or check_location(solidSnake.x,solidSnake.y+10)==(255,0,0,255) or check_location(solidSnake.x+10,solidSnake.y+10)==(255,0,0,255):
         #ran into wall
         reward=-5
         #under här är variabler att reseta när spelet är över{
@@ -135,28 +141,54 @@ while i:
         mat=False
         #}
     
-    #movement, i will give this to both ai and observers of the ai for now
+    # movement with direction locking: prevent immediate reverse
     key = pygame.key.get_pressed()
-    if key[pygame.K_a] == True:
-        a=1
-    elif key[pygame.K_s] == True:
-        s=1
-    elif key[pygame.K_d] == True:
-        d=1
-    elif key[pygame.K_w] == True:
-        w=1
-    elif key[pygame.K_q] == True:
+    desired = None
+    if key[pygame.K_a]:
+        desired = 'L'
+    elif key[pygame.K_d]:
+        desired = 'R'
+    elif key[pygame.K_w]:
+        desired = 'U'
+    elif key[pygame.K_s]:
+        desired = 'D'
+    elif key[pygame.K_q]:
         time=120
-    elif key[pygame.K_e] == True:
+    elif key[pygame.K_e]:
         time=1000000
+
+    # if desired direction is not the opposite of last_dir, accept it
+    if desired:
+        if not ((last_dir == 'L' and desired == 'R') or (last_dir == 'R' and desired == 'L') or (last_dir == 'U' and desired == 'D') or (last_dir == 'D' and desired == 'U')):
+            if desired == 'L':
+                a = 1
+            elif desired == 'R':
+                d = 1
+            elif desired == 'U':
+                w = 1
+            elif desired == 'D':
+                s = 1
+
     if w or a or s or d:
         prevX.insert(0, solidSnake.x)
         prevY.insert(0, solidSnake.y)
-        solidSnake.move_ip(d-a,s-w)
-        a=0
-        w=0
-        s=0
-        d=0
+        solidSnake.move_ip(d-a, s-w)
+        # update last_dir based on movement vector
+        dx = d - a
+        dy = s - w
+        if dx < 0:
+            last_dir = 'L'
+        elif dx > 0:
+            last_dir = 'R'
+        elif dy < 0:
+            last_dir = 'U'
+        elif dy > 0:
+            last_dir = 'D'
+
+        a = 0
+        w = 0
+        s = 0
+        d = 0
         
     pygame.display.update()
 
